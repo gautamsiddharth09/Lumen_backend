@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "dev:all": "concurrently \"npm --prefix ../lumen-website run dev:client\" \"nodemon index.js\"",
+    "dev:server": "nodemon index.js",
+    "build": "npm --prefix ../lumen-website run build",
+    "lint": "npm --prefix ../lumen-website run lint",
+    "server:check": "node --check index.js"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.5",
+    "dotenv": "^17.4.2",
+    "nodemailer": "^10.0.9"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
