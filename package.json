@@ -5,7 +5,6 @@
     "dev": "nodemon index.js",
     "dev:all": "concurrently \"npm --prefix ../lumen-website run dev:client\" \"nodemon index.js\"",
     "dev:server": "nodemon index.js",
-    "build": "npm --prefix ../lumen-website run build",
     "lint": "npm --prefix ../lumen-website run lint",
     "server:check": "node --check index.js"
   },
