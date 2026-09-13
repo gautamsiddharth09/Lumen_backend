@@ -1,9 +1,22 @@
 import "dotenv/config";
-import http from "node:http";
+import express from "express";
+import cors from "cors";
 import nodemailer from "nodemailer";
 
+const app = express();
 const port = Number(process.env.API_PORT || 3001);
 const allowedOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+app.use(
+  cors({
+    origin: allowedOrigin,
+    methods: ["POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  }),
+);
+
+app.use(express.json({ limit: "100kb" }));
+
 const requiredEnv = [
   "SMTP_HOST",
   "SMTP_PORT",
@@ -33,29 +46,6 @@ const allowedServices = new Set([
   "Other",
 ]);
 
-function sendJson(response, status, payload) {
-  response.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  });
-  response.end(JSON.stringify(payload));
-}
-
-function readBody(request) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    request.on("data", (chunk) => {
-      body += chunk;
-      if (body.length > 100_000)
-        request.destroy(new Error("Request body too large"));
-    });
-    request.on("end", () => resolve(body));
-    request.on("error", reject);
-  });
-}
-
 function clean(value, maxLength = 5000) {
   return String(value || "")
     .trim()
@@ -74,18 +64,14 @@ function validate(payload) {
   return null;
 }
 
-const server = http.createServer(async (request, response) => {
-  if (request.method === "OPTIONS") return sendJson(response, 204, {});
-  if (request.method !== "POST" || request.url !== "/api/contact")
-    return sendJson(response, 404, { message: "Route not found." });
-
+app.post("/api/contact", async (req, res) => {
   try {
-    const payload = JSON.parse(await readBody(request));
+    const payload = req.body || {};
     const validationError = validate(payload);
     if (validationError)
-      return sendJson(response, 400, { message: validationError });
+      return res.status(400).json({ message: validationError });
     if (missingEnv.length)
-      return sendJson(response, 503, {
+      return res.status(503).json({
         message: "Email service is not configured yet.",
       });
 
@@ -117,15 +103,15 @@ const server = http.createServer(async (request, response) => {
       ].join("\n"),
     });
 
-    sendJson(response, 200, { message: "Your inquiry was sent successfully." });
+    return res.status(200).json({ message: "Your inquiry was sent successfully." });
   } catch (error) {
     console.error("Contact form error:", error);
-    sendJson(response, 500, {
+    return res.status(500).json({
       message: "We could not send your inquiry. Please try again.",
     });
   }
 });
 
-server.listen(port, () =>
+app.listen(port, () =>
   console.log(`LUMEN mail API listening on http://localhost:${port}`),
 );
